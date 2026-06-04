@@ -32,7 +32,71 @@ After training / inference, you get annotated detections in Gradio or the Notebo
 
 ---
 
-### End-to-end workflow
+### Production line: camera → edge → robot arm
+
+How this ML screw-fastening stack runs on a real line: the **station camera** captures the PCB, the **edge node** runs the **trained model** to compute hole positions, and the **robot arm** fastens screws using those coordinates.
+
+```mermaid
+flowchart LR
+    subgraph Station["① Assembly station"]
+        CAM["Industrial camera<br/>Capture PCB image"]
+    end
+
+    subgraph Edge["② Edge compute node"]
+        RX["Receive image<br/>GigE / USB / shared memory"]
+        INF["Trained model inference<br/>.tflite or .pt runtime"]
+        POS["Output hole positions<br/>pixel → world (x, y, θ)"]
+        RX --> INF --> POS
+    end
+
+    subgraph Arm["③ Robot arm controller"]
+        CAL["Hand-eye calibration<br/>camera frame → robot base"]
+        PLAN["Motion planning<br/>approach each hole"]
+        FAST["Fastening<br/>drive screw into hole"]
+        CAL --> PLAN --> FAST
+    end
+
+    CAM -->|"Image stream / frame"| RX
+    POS -->|"Position + confidence"| CAL
+```
+
+| Step | Component | Role |
+|------|-----------|------|
+| 1 | **Station camera** | Photograph the PCB after placement (or before fastening) |
+| 2 | **Edge node** | Run the deployed detector; return each screw-hole center and score |
+| 3 | **Robot arm** | Transform poses, move the tool, and drive screws into the detected holes |
+
+Typical edge stack: export with `export.py` → load `.tflite` on the IPC / NPU; optional PLC/MES handshake around the position list.
+
+---
+
+### Swapping models for new PCBs
+
+When the line switches to a **new board** (different hole layout or SKU), you **retrain and replace the model** on the edge node—robot motion logic stays the same if hole coordinates are still delivered in the same format.
+
+```mermaid
+flowchart TB
+    N["New PCB type on the line"]
+    D["Collect PCB photos + label screw holes<br/>(YOLO format under data/screw_holes/)"]
+    T["Train new weights<br/>train.py / Notebook → best.pt"]
+    E["Export for edge<br/>export.py → new .tflite"]
+    S["Hot-swap on edge node<br/>point runtime to new model file"]
+    R["Same pipeline: camera → edge infer → arm fasten"]
+
+    N --> D --> T --> E --> S --> R
+    S -.->|"Next SKU / layout"| N
+```
+
+| Change | What you update | What usually stays |
+|--------|-----------------|-------------------|
+| New PCB layout | Dataset, `dataset.yaml`, retrain, new `.tflite` on edge | Camera mount, network path, arm fastening sequence |
+| Higher accuracy need | More labeled images, epochs, or larger YOLO variant | Overall architecture above |
+
+This repository covers **training and export** (steps D → E); integration with your camera SDK and robot controller is on the factory side.
+
+---
+
+### End-to-end workflow (development)
 
 ```mermaid
 flowchart TB
