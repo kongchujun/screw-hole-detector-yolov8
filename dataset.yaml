@@ -1,0 +1,10 @@
+# YOLOv8 dataset config — screw holes on PCB
+# Docs: https://docs.ultralytics.com/datasets/detect/
+
+path: data/screw_holes  # dataset root (relative to project root)
+train: images/train
+val: images/val
+# test: images/test  # optional
+
+names:
+  0: screw_hole
