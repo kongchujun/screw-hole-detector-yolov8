@@ -20,6 +20,27 @@ An **ML vision-guided screw fastening** demo: **YOLOv8** detects screw holes on 
 | Deployment | Optional **TFLite** export for edge inference |
 | UX | Jupyter Notebook + Gradio Web Demo |
 
+### End-to-end screw fastening workflow
+
+The diagram below is the **full ML screw-driving pipeline**: station **camera** captures the PCB (**PLC**) → **edge node** runs the trained model → hole locations sent to the **robot arm** via **Kepware** → arm **drives screws** into the board; the **cloud server** can **update the model** on the edge for new PCB types.
+
+<p align="center">
+  <img src="images/img2.png" alt="ML screw fastening production workflow" width="900"/>
+</p>
+
+<p align="center"><sub>Figure: Production workflow (<code>images/img2.png</code>) — Image → Edge calculation → Robot arm → Screw; Cloud server → Update the model</sub></p>
+
+| Stage | Description |
+|-------|-------------|
+| **Image / PLC** | Station camera captures the circuit board |
+| **Edge calculation** | Edge node runs YOLO; outputs hole positions (bbox, center, confidence) |
+| **Kepware** | Industrial middleware delivering coordinates to the robot controller |
+| **Robot arm** | Moves to each hole and performs fastening |
+| **Screw** | Screw driven into the detected hole |
+| **Cloud server → Update the model** | Train/deploy new weights to the edge; hot-swap for new boards without rewriting arm logic |
+
+---
+
 ### Result preview
 
 After training / inference, you get annotated detections in Gradio or the Notebook. Example:
@@ -34,7 +55,7 @@ After training / inference, you get annotated detections in Gradio or the Notebo
 
 ### Production line: camera → edge → robot arm
 
-How this ML screw-fastening stack runs on a real line: the **station camera** captures the PCB, the **edge node** runs the **trained model** to compute hole positions, and the **robot arm** fastens screws using those coordinates.
+Same as the diagram above: **camera** → **edge inference** → **Kepware** → **robot arm** fastening.
 
 ```mermaid
 flowchart LR
@@ -170,7 +191,8 @@ flowchart LR
 | `export.py` | Convert `best.pt` to `.tflite` |
 | `predict.py` | Single-image CLI inference |
 | `demo.py` | Gradio UI with boxes & coordinates |
-| `images/img.png` | Example final result screenshot |
+| `images/img2.png` | **Production workflow overview** (camera → edge → arm → cloud model update) |
+| `images/img.png` | Gradio detection result screenshot |
 
 ---
 
@@ -180,7 +202,8 @@ flowchart LR
 screw-hole-detector-yolov8/
 ├── README.md / README_zh.md
 ├── ScrewHole_YOLOv8.ipynb
-├── images/img.png
+├── images/img2.png   # production workflow overview
+├── images/img.png    # detection demo screenshot
 ├── dataset.yaml
 ├── train.py · export.py · predict.py · demo.py
 ├── generate_demo_dataset.py

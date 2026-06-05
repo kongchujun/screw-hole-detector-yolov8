@@ -20,6 +20,27 @@
 | 部署 | 可导出 **TFLite** 给边缘设备推理 |
 | 交互 | Jupyter Notebook + Gradio Web Demo |
 
+### ML 打螺丝产线总览
+
+下图是 **整条打螺丝工作流**：工位相机对电路板（PLC）采图 → **边缘计算节点**用已训练模型算出孔位 → 经 **Kepware** 把孔位发给 **机械臂** → 机械臂在板上 **拧螺丝**；**云服务器**可向边缘节点 **更新模型**，以适配新型号电路板。
+
+<p align="center">
+  <img src="images/img2.png" alt="ML 打螺丝产线工作流" width="900"/>
+</p>
+
+<p align="center"><sub>图：产线工作流（<code>images/img2.png</code>）— Image → Edge calculation → Robot arm → Screw；Cloud server → Update the model</sub></p>
+
+| 环节 | 说明 |
+|------|------|
+| **Image / PLC** | 工位相机拍摄电路板图像 |
+| **Edge calculation** | 边缘节点运行 YOLO 模型，输出螺丝孔位置（左上/右下/中心、置信度） |
+| **Kepware** | 工业通信中间件，将孔位坐标下发给机械臂控制器 |
+| **Robot arm** | 按孔位走位，执行锁付 |
+| **Screw** | 螺钉打入检测到的孔位 |
+| **Cloud server → Update the model** | 云端训练新权重并下发边缘，换型时热替换模型，无需改机械臂主流程 |
+
+---
+
 ### 检测结果示意
 
 训练 / 推理完成后，可在 Gradio 或 Notebook 中得到带框的检测结果。示例截图：
@@ -34,7 +55,7 @@
 
 ### 产线部署：相机 → 边缘节点 → 机械臂
 
-真实产线上 **ML 打螺丝** 的数据流：**工位相机**拍摄电路板 → 图像传到 **边缘计算节点** → 用 **已训练模型** 算出孔位 → 把坐标发给 **机械臂** → 机械臂按位置 **把螺钉打进孔里**。
+与上图一致，数据流可概括为：**工位相机**拍摄电路板 → **边缘计算节点**推理 → **Kepware** 传孔位 → **机械臂**锁付。
 
 ```mermaid
 flowchart LR
@@ -172,7 +193,8 @@ flowchart LR
 | `export.py` | 将 `best.pt` 转为 `.tflite`（INT8 或 float32） |
 | `predict.py` | 命令行单图检测 |
 | `demo.py` | Gradio：上传图 → 框 + 孔位坐标表 |
-| `images/img.png` | 最终结果示例截图 |
+| `images/img2.png` | **产线打螺丝总览图**（相机→边缘→机械臂→云更新模型） |
+| `images/img.png` | Gradio 检测结果示例截图 |
 
 ---
 
@@ -182,7 +204,8 @@ flowchart LR
 screw-hole-detector-yolov8/
 ├── README.md / README_zh.md
 ├── ScrewHole_YOLOv8.ipynb
-├── images/img.png
+├── images/img2.png   # 产线工作流总览
+├── images/img.png    # 检测 Demo 截图
 ├── dataset.yaml
 ├── train.py · export.py · predict.py · demo.py
 ├── generate_demo_dataset.py
